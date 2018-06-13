@@ -1,0 +1,6 @@
+/dist
+/node_modules
+/.env.windows
+data/data.json
+data/garmin1.png
+data/data.csv
