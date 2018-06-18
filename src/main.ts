@@ -27,14 +27,16 @@ const progbar = new cliProgress.Bar({clearOnComplete: true}, cliProgress.Presets
 progbar.start(200, 0);
 progbar.update(100);
 (async () => {
-    const json = await downloadData(uid, pw, false, progbar);
+    const aJson = await downloadData(uid, pw, debug, progbar);
+    fs.writeFile("./data/running.json", aJson[0]);
+    fs.writeFile("./data/weight.json", aJson[1]);
     progbar.update(200);
-    fs.writeFile("./data/data.json", json);
-
     progbar.stop();
-    const buffer = await fs.readFile("./data/data.json");
-    const json2 = buffer.toString("utf8");
-    const sCsv = await parse(json2);
+    const buffer = await fs.readFile("./data/running.json");
+    const json = buffer.toString("utf8");
+    const buffer2 = await fs.readFile("./data/weight.json");
+    const json2 = buffer2.toString("utf8");
+    const sCsv = await parse(json, json2);
     fs.writeFile("./data/data.csv", sCsv);
     console.log("Done");
 })();

@@ -1,11 +1,24 @@
 import * as moment from "moment";
 import * as ss from "simple-statistics";
 
-export default async function parse(json: string): Promise<string> {
+export default async function parse(json: string, json2: string): Promise<string> {
     const data: Activity[] = JSON.parse(json);
+    const weights: Weight[] = JSON.parse(json2);
+    // console.dir(weights);
     data.reverse();
-    console.log(data.length);
+    // console.log(data.length);
     const weeks: {[index: string]: Activity[] } = {};
+    const weightWeeks: {[index: string]: Weight[] } = {};
+
+    for (const w of weights) {
+        const m = moment(w.date);
+        const key = m.year() + "-" + m.isoWeek();
+        if (weightWeeks[key] === undefined) {
+            weightWeeks[key] = [];
+        }
+        weightWeeks[key].push(w);
+    }
+
     for (const run of data) {
         const m = moment(run.startTimeLocal);
         const key = m.year() + "-" + m.isoWeek();
@@ -13,23 +26,22 @@ export default async function parse(json: string): Promise<string> {
             weeks[key] = [];
         }
         weeks[key].push(run);
-        // console.log(m.week() + "," + m.year() + "," + run.elevationGain + "," + run.elevationLoss);
     }
     const summaries = [];
     for (const key in weeks) {
         const entries = weeks[key];
-        const week = handleWeek(entries);
+        const weightWeek = weightWeeks[key];
+        const week = handleWeek(entries, weightWeek);
         summaries.push(week);
         console.dir(week);
     }
     summaries.reverse();
     const sCsv = printCsv(summaries);
-    // console.log(sCsv);
     return sCsv;
 }
 
 function printCsv(list: Summary[]): string {
-    let sCsv = "Date, Count, Distance, Mins, Cals, Elev Gain, Mean Avg Pace, Max Avg Page, Mean Avg HR, Mean Stride, Mean Cadence \r\n";
+    let sCsv = "Date, Count, Distance, Mins, Cals, Elev Gain, Mean Avg Pace, Max Avg Page, Mean Avg HR, Mean Stride, Mean Cadence, Min Weight, Max Weight, Median Weight, Mean Weight \r\n";
     for (const s of list) {
         sCsv += s.startDate + ", ";
         sCsv += s.count.toFixed(0) + ", ";
@@ -41,7 +53,11 @@ function printCsv(list: Summary[]): string {
         sCsv += formatMins(s.maxAvgPace) + ", ";
         sCsv += s.meanAvgHR.toFixed(0) + ", ";
         sCsv += s.meanStrideLength.toFixed(0) + ", ";
-        sCsv += s.meanAvgCadence.toFixed(0);
+        sCsv += s.meanAvgCadence.toFixed(0) + ", ";
+        sCsv += s.minWeight.toFixed(2) + ", ";
+        sCsv += s.maxWeight.toFixed(2) + ", ";
+        sCsv += s.medianWeight.toFixed(1) + ", ";
+        sCsv += s.meanWeight.toFixed(1);
         sCsv += "\r\n";
     }
     return sCsv;
@@ -58,8 +74,7 @@ function formatMins(i: number): string {
     return Math.floor(dur.asMinutes()) + moment.utc(dur.asMilliseconds()).format(":ss");
 }
 
-
-function handleWeek(runs: Activity[]): Summary {
+function handleWeek(runs: Activity[], weights: Weight[]): Summary {
     const start = moment(runs[runs.length - 1].startTimeLocal);
     let s = "";
 
@@ -70,16 +85,14 @@ function handleWeek(runs: Activity[]): Summary {
     const aAvgHR = column(runs, "averageHR");
     const aMaxHR = column(runs, "maxHR");
     const aAvgStrideLength = column(runs, "avgStrideLength"); // units? 112
-    const aSteps = column(runs, "steps");
+    // const aSteps = column(runs, "steps");
     const aAvgCadence = column(runs, "averageRunningCadenceInStepsPerMinute");
     const aMaxCadence = column(runs, "maxRunningCadenceInStepsPerMinute");
     const aMaxPace = column(runs, "maxSpeed", (i: number) => {if (i === 0) return undefined; else return (1 / i) * 26.822; });
     const aAvgPace = column(runs, "averageSpeed", (i: number) => {if (i === 0) return undefined; return (1 / i) * 26.822; });
-    // const aMaxPace = column(runs, "maxSpeed", (i: number) => { return (1 / i) * 26.822; });
-    // const aAvgPace = column(runs, "averageSpeed", (i: number) => { return (1 / i) * 26.822; });
+    const aWeights = column(weights, "weight", (i: number) => {return i / 453.592; });
     for (const run of runs) {
         s += moment(run.startTimeLocal).format("ddd") + " ";
-
     }
     start.startOf("isoWeek");
 
@@ -111,7 +124,11 @@ function handleWeek(runs: Activity[]): Summary {
         minMaxCadence: min(aMaxCadence),
         maxMaxCadence: max(aMaxCadence),
         meanMaxCadence: mean(aMaxCadence),
-        maxMaxPace: max(aMaxPace)
+        maxMaxPace: max(aMaxPace),
+        minWeight: min(aWeights),
+        maxWeight: max(aWeights),
+        meanWeight: mean(aWeights),
+        medianWeight: median(aWeights),
     };
     return summary;
 }
@@ -137,6 +154,13 @@ function mean(list: number[]): number {
         return 0;
     }
     return ss.mean(list);
+}
+
+function median(list: number[]): number {
+    if (list.length === 0) {
+        return 0;
+    }
+    return ss.median(list);
 }
 
 interface Summary {
@@ -168,22 +192,28 @@ interface Summary {
     maxMaxCadence: number;
     meanMaxCadence: number;
     maxMaxPace: number;
+    minWeight: number;
+    maxWeight: number;
+    meanWeight: number;
+    medianWeight: number;
 }
 
 function column(list: any[], field: string, mutator?: ColumnMutator): number[] {
     const returnMe = [];
-    for (const i of list) {
-        const val = i[field];
-        if (val === null) {
-            continue;
-        }
-        if (mutator === undefined) {
-            returnMe.push(val);
-        }
-        else {
-            const mut = mutator(val);
-            if (mut !== undefined) {
-                returnMe.push(mut);
+    if (list !== undefined) {
+        for (const i of list) {
+            const val = i[field];
+            if (val === null) {
+                continue;
+            }
+            if (mutator === undefined) {
+                returnMe.push(val);
+            }
+            else {
+                const mut = mutator(val);
+                if (mut !== undefined) {
+                    returnMe.push(mut);
+                }
             }
         }
     }
@@ -192,6 +222,21 @@ function column(list: any[], field: string, mutator?: ColumnMutator): number[] {
 
 type ColumnMutator = (input: number) => number;
 
+interface Weight {
+    samplePk: number;
+    date: number;
+    weight: number;
+    bmi: number;
+    bodyFat: number;
+    bodyWater: number;
+    boneMass: number;
+    muscleMass: number;
+    physiqueRating?: any;
+    visceralFat?: any;
+    metabolicAge?: any;
+    caloricIntake?: any;
+    sourceType?: any;
+  }
 
 interface Activity {
     activityId: number;

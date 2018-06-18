@@ -3,8 +3,10 @@ import * as cliProgress from "cli-progress";
 
 const LOGIN = "https://connect.garmin.com/en-US/signin";
 const RUNNING = "https://connect.garmin.com/modern/proxy/activitylist-service/activities/search/activities?activityType=running&limit=1000&start=0";
+const WEIGHT = "https://connect.garmin.com/modern/proxy/userprofile-service/userprofile/personal-information/weightWithOutbound/filterByDay?from=" +
+    new Date("January 1, 2010 00:00:00").getTime() + "&until=" + new Date().getTime() + "&_=1529325127976";
 
-export default async function downloadData(uid: string, pw: string, debug: boolean, progbar: cliProgress.Bar): Promise<string> {
+export default async function downloadData(uid: string, pw: string, debug: boolean, progbar: cliProgress.Bar): Promise<string[]> {
         const browser = await puppeteer.launch();
         let page = await browser.newPage();
 
@@ -72,6 +74,12 @@ export default async function downloadData(uid: string, pw: string, debug: boole
             return document.querySelector("body").innerText;
         });
         progbar.update(150);
+        console.log(WEIGHT);
+        await page.goto(WEIGHT);
+        const innerText2 = await page.evaluate(() =>  {
+            return document.querySelector("body").innerText;
+        });
+        progbar.update(175);
         await browser.close();
-        return innerText;
+        return [innerText, innerText2];
     }
