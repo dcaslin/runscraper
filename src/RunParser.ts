@@ -1,14 +1,25 @@
 import * as moment from "moment";
 import * as ss from "simple-statistics";
 
-export default async function parse(json: string, json2: string): Promise<string> {
+export default async function parse(json: string, json2: string, json3: string): Promise<string> {
     const data: Activity[] = JSON.parse(json);
     const weights: Weight[] = JSON.parse(json2);
-    // console.dir(weights);
+    const lifting: Activity[] = JSON.parse(json3);
     data.reverse();
-    // console.log(data.length);
+    weights.reverse();
     const weeks: {[index: string]: Activity[] } = {};
     const weightWeeks: {[index: string]: Weight[] } = {};
+    const liftingWeeks: {[index: string]: Activity[] } = {};
+
+    for (const l of lifting) {
+
+        const m = moment(l.startTimeLocal);
+        const key = m.year() + "-" + m.isoWeek();
+        if (liftingWeeks[key] === undefined) {
+            liftingWeeks[key] = [];
+        }
+        liftingWeeks[key].push(l);
+    }
 
     for (const w of weights) {
         const m = moment(w.date);
@@ -31,9 +42,10 @@ export default async function parse(json: string, json2: string): Promise<string
     for (const key in weeks) {
         const entries = weeks[key];
         const weightWeek = weightWeeks[key];
-        const week = handleWeek(entries, weightWeek);
+        const liftingWeek = liftingWeeks[key];
+        const week = handleWeek(entries, weightWeek, liftingWeek);
         summaries.push(week);
-        console.dir(week);
+        // console.dir(week);
     }
     summaries.reverse();
     const sCsv = printCsv(summaries);
@@ -41,10 +53,13 @@ export default async function parse(json: string, json2: string): Promise<string
 }
 
 function printCsv(list: Summary[]): string {
-    let sCsv = "Date, Count, Distance, Mins, Cals, Elev Gain, Mean Avg Pace, Max Avg Page, Mean Avg HR, Mean Stride, Mean Cadence, Min Weight, Max Weight, Median Weight, Mean Weight \r\n";
+    let sCsv = "Date, Count, Lifting, Distance, Mins, Cals, Elev Gain, Mean Avg Pace, Max Avg Page, Mean Avg HR, Mean Stride, Mean Cadence, Min Weight, Max Weight, Median Weight, Mean Weight,Run Days, Lift Days \r\n";
     for (const s of list) {
+        // skip weeks with no running data
+        if (s.count === 0) continue;
         sCsv += s.startDate + ", ";
         sCsv += s.count.toFixed(0) + ", ";
+        sCsv += s.liftingCount.toFixed(0) + ", ";
         sCsv += s.totalDist.toFixed(1) + ", ";
         sCsv += formatMins(s.totalMinutes) + ", ";
         sCsv += s.totalCalories.toFixed(0) + ", ";
@@ -57,7 +72,9 @@ function printCsv(list: Summary[]): string {
         sCsv += s.minWeight.toFixed(2) + ", ";
         sCsv += s.maxWeight.toFixed(2) + ", ";
         sCsv += s.medianWeight.toFixed(1) + ", ";
-        sCsv += s.meanWeight.toFixed(1);
+        sCsv += s.meanWeight.toFixed(1) + ", ";
+        sCsv += s.days + ", ";
+        sCsv += s.liftingDays;
         sCsv += "\r\n";
     }
     return sCsv;
@@ -74,9 +91,11 @@ function formatMins(i: number): string {
     return Math.floor(dur.asMinutes()) + moment.utc(dur.asMilliseconds()).format(":ss");
 }
 
-function handleWeek(runs: Activity[], weights: Weight[]): Summary {
+function handleWeek(runs: Activity[], weights: Weight[], lifting: Activity[]): Summary {
+    if (lifting === undefined) {
+        lifting = [];
+    }
     const start = moment(runs[runs.length - 1].startTimeLocal);
-    let s = "";
 
     const aDist = column(runs, "distance", (input: number) => {return input / 1609.34; });
     const aDur = column(runs, "duration", (input: number) => {return input / 60; });
@@ -91,8 +110,21 @@ function handleWeek(runs: Activity[], weights: Weight[]): Summary {
     const aMaxPace = column(runs, "maxSpeed", (i: number) => {if (i === 0) return undefined; else return (1 / i) * 26.822; });
     const aAvgPace = column(runs, "averageSpeed", (i: number) => {if (i === 0) return undefined; return (1 / i) * 26.822; });
     const aWeights = column(weights, "weight", (i: number) => {return i / 453.592; });
+    let s = "";
     for (const run of runs) {
         s += moment(run.startTimeLocal).format("ddd") + " ";
+    }
+    if (runs.length === 0) {
+        s = "N/A";
+    }
+    let ls = "";
+    console.log(lifting.length);
+    for (const l of lifting) {
+        ls += moment(l.startTimeLocal).format("ddd") + " ";
+        console.log(l.startTimeLocal);
+    }
+    if (lifting.length === 0) {
+        ls = "N/A";
     }
     start.startOf("isoWeek");
 
@@ -100,6 +132,8 @@ function handleWeek(runs: Activity[], weights: Weight[]): Summary {
         startDate: start.format("YYYY-MM-DD"),
         count: runs.length,
         days: s,
+        liftingCount: lifting.length,
+        liftingDays: ls,
         totalDist: ss.sum(aDist),
         minDist: ss.min(aDist),
         maxDist: ss.max(aDist),
@@ -167,6 +201,8 @@ interface Summary {
     startDate: string;
     count: number;
     days: string;
+    liftingCount: number;
+    liftingDays: string;
     totalDist: number;
     minDist: number;
     maxDist: number;

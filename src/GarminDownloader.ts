@@ -5,6 +5,7 @@ const LOGIN = "https://connect.garmin.com/en-US/signin";
 const RUNNING = "https://connect.garmin.com/modern/proxy/activitylist-service/activities/search/activities?activityType=running&limit=1000&start=0";
 const WEIGHT = "https://connect.garmin.com/modern/proxy/userprofile-service/userprofile/personal-information/weightWithOutbound/filterByDay?from=" +
     new Date("January 1, 2010 00:00:00").getTime() + "&until=" + new Date().getTime() + "&_=1529325127976";
+const LIFTING = "https://connect.garmin.com/modern/proxy/activitylist-service/activities/search/activities?search=Lifting&limit=2000&start=0";
 
 export default async function downloadData(uid: string, pw: string, debug: boolean, progbar: cliProgress.Bar): Promise<string[]> {
         const browser = await puppeteer.launch();
@@ -74,12 +75,19 @@ export default async function downloadData(uid: string, pw: string, debug: boole
             return document.querySelector("body").innerText;
         });
         progbar.update(150);
-        console.log(WEIGHT);
+        // console.log(WEIGHT);
         await page.goto(WEIGHT);
         const innerText2 = await page.evaluate(() =>  {
             return document.querySelector("body").innerText;
         });
         progbar.update(175);
+        // console.log(LIFTING);
+        await page.goto(LIFTING);
+        const innerText3 = await page.evaluate(() =>  {
+            return document.querySelector("body").innerText;
+        });
+        progbar.update(185);
+        console.log(process.memoryUsage());
         await browser.close();
-        return [innerText, innerText2];
+        return [innerText, innerText2, innerText3];
     }

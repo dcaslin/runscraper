@@ -7,3 +7,5 @@ data/data.csv
 data/weight.json
 data/running.json
 .vscode/launch.json
+.DS_Store
+data/lifting.json
