@@ -53,7 +53,7 @@ export default async function parse(json: string, json2: string, json3: string):
 }
 
 function printCsv(list: Summary[]): string {
-    let sCsv = "Date, Count, Lifting, Distance, Mins, Cals, Elev Gain, Mean Avg Pace, Max Avg Page, Mean Avg HR, Mean Stride, Mean Cadence, Min Weight, Max Weight, Median Weight, Mean Weight,Run Days, Lift Days, Min An, Max An, Median An, Min Aer, Max Aer, Median Aer, Min Vo2, Max Vo2, Median Vo2, Min Temp, Max Temp, Median Temp \r\n";
+    let sCsv = "Date, Count, Lifting, Distance, Mins, Cals, Elev Gain, Mean Avg Pace, Max Avg Page, Mean Avg HR, Max MAX HR, Mean Stride, Mean Cadence, Min Weight, Max Weight, Median Weight, Mean Weight,Run Days, Lift Days, Min An, Max An, Median An, Min Aer, Max Aer, Median Aer, Min Vo2, Max Vo2, Median Vo2, Min Temp, Max Temp, Median Temp \r\n";
     for (const s of list) {
         // skip weeks with no running data
         if (s.count === 0) continue;
@@ -67,6 +67,7 @@ function printCsv(list: Summary[]): string {
         sCsv += formatMins(s.meanAvgPace) + ", ";
         sCsv += formatMins(s.maxAvgPace) + ", ";
         sCsv += s.meanAvgHR.toFixed(0) + ", ";
+        sCsv += s.maxMaxHR.toFixed(0) + ", ";
         sCsv += s.meanStrideLength.toFixed(0) + ", ";
         sCsv += s.meanAvgCadence.toFixed(0) + ", ";
         sCsv += s.minWeight.toFixed(2) + ", ";
@@ -136,10 +137,8 @@ function handleWeek(runs: Activity[], weights: Weight[], lifting: Activity[]): S
         s = "N/A";
     }
     let ls = "";
-    console.log(lifting.length);
     for (const l of lifting) {
         ls += moment(l.startTimeLocal).format("ddd") + " ";
-        console.log(l.startTimeLocal);
     }
     if (lifting.length === 0) {
         ls = "N/A";
