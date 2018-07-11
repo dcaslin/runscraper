@@ -53,7 +53,7 @@ export default async function parse(json: string, json2: string, json3: string):
 }
 
 function printCsv(list: Summary[]): string {
-    let sCsv = "Date, Count, Lifting, Distance, Mins, Cals, Elev Gain, Mean Avg Pace, Max Avg Page, Mean Avg HR, Mean Stride, Mean Cadence, Min Weight, Max Weight, Median Weight, Mean Weight,Run Days, Lift Days \r\n";
+    let sCsv = "Date, Count, Lifting, Distance, Mins, Cals, Elev Gain, Mean Avg Pace, Max Avg Page, Mean Avg HR, Mean Stride, Mean Cadence, Min Weight, Max Weight, Median Weight, Mean Weight,Run Days, Lift Days, Min An, Max An, Median An, Min Aer, Max Aer, Median Aer, Min Vo2, Max Vo2, Median Vo2, Min Temp, Max Temp, Median Temp \r\n";
     for (const s of list) {
         // skip weeks with no running data
         if (s.count === 0) continue;
@@ -74,7 +74,19 @@ function printCsv(list: Summary[]): string {
         sCsv += s.medianWeight.toFixed(1) + ", ";
         sCsv += s.meanWeight.toFixed(1) + ", ";
         sCsv += s.days + ", ";
-        sCsv += s.liftingDays;
+        sCsv += s.liftingDays + ", ";
+        sCsv += s.minAnaerobic.toFixed(1) + ", ";
+        sCsv += s.maxAnaerobic.toFixed(1) + ", ";
+        sCsv += s.medianAnaerobic.toFixed(1) + ", ";
+        sCsv += s.minAerobic.toFixed(1) + ", ";
+        sCsv += s.maxAerobic.toFixed(1) + ", ";
+        sCsv += s.medianAerobic.toFixed(1) + ", ";
+        sCsv += s.minVo2.toFixed(1) + ", ";
+        sCsv += s.maxVo2.toFixed(1) + ", ";
+        sCsv += s.medianVo2.toFixed(1) + ", ";
+        sCsv += s.minTemp.toFixed(1) + ", ";
+        sCsv += s.maxTemp.toFixed(1) + ", ";
+        sCsv += s.medianTemp.toFixed(1);
         sCsv += "\r\n";
     }
     return sCsv;
@@ -104,6 +116,12 @@ function handleWeek(runs: Activity[], weights: Weight[], lifting: Activity[]): S
     const aAvgHR = column(runs, "averageHR");
     const aMaxHR = column(runs, "maxHR");
     const aAvgStrideLength = column(runs, "avgStrideLength"); // units? 112
+
+    const aAerobicEffect = column(runs, "aerobicTrainingEffect");
+    const aAnaerobicEffect = column(runs, "anaerobicTrainingEffect");
+    const aVO2MaxValue = column(runs, "vO2MaxValue");
+    const aMinTemp = column(runs, "minTemperature", (i: number) => {return  (i * (9 / 5)) + 32; });
+
     // const aSteps = column(runs, "steps");
     const aAvgCadence = column(runs, "averageRunningCadenceInStepsPerMinute");
     const aMaxCadence = column(runs, "maxRunningCadenceInStepsPerMinute");
@@ -163,6 +181,18 @@ function handleWeek(runs: Activity[], weights: Weight[], lifting: Activity[]): S
         maxWeight: max(aWeights),
         meanWeight: mean(aWeights),
         medianWeight: median(aWeights),
+        minAnaerobic: min(aAnaerobicEffect),
+        maxAnaerobic: max(aAnaerobicEffect),
+        medianAnaerobic: median(aAnaerobicEffect),
+        minAerobic: min(aAerobicEffect),
+        maxAerobic: max(aAerobicEffect),
+        medianAerobic: median(aAerobicEffect),
+        minVo2: min(aVO2MaxValue),
+        maxVo2: max(aVO2MaxValue),
+        medianVo2: median(aVO2MaxValue),
+        minTemp: min(aMinTemp),
+        maxTemp: max(aMinTemp),
+        medianTemp: median(aMinTemp)
     };
     return summary;
 }
@@ -232,6 +262,18 @@ interface Summary {
     maxWeight: number;
     meanWeight: number;
     medianWeight: number;
+    minAnaerobic: number;
+    maxAnaerobic: number;
+    medianAnaerobic: number;
+    minAerobic: number;
+    maxAerobic: number;
+    medianAerobic: number;
+    minVo2: number;
+    maxVo2: number;
+    medianVo2: number;
+    minTemp: number;
+    maxTemp: number;
+    medianTemp: number;
 }
 
 function column(list: any[], field: string, mutator?: ColumnMutator): number[] {

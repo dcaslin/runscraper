@@ -43,3 +43,9 @@ progbar.update(100);
     fs.writeFile("./data/data.csv", sCsv);
     console.log("Done");
 })();
+
+// TODO
+// "aerobicTrainingEffect": 3,
+// "anaerobicTrainingEffect": 0,
+// "vO2MaxValue": 51,
+// "minTemperature": 30,
