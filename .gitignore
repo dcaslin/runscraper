@@ -1,11 +1,8 @@
 /dist
 /node_modules
 /.env.windows
-data/data.json
-data/garmin1.png
-data/data.csv
-data/weight.json
-data/running.json
 .vscode/launch.json
 .DS_Store
-data/lifting.json
+data/*.json
+data/*.png
+data/*.csv
