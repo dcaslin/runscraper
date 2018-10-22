@@ -15,11 +15,3 @@
 * Clone this repository
 * yarn
 * yarn start [your garmin user name] [your password]
-
-### Contribution guidelines ###
-
-* If you want to contribute, let me know!
-
-### Who do I talk to? ###
-
-* /u/dweezil22 on reddit
