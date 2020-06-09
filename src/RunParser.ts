@@ -1,5 +1,7 @@
-import * as moment from "moment";
-import * as ss from "simple-statistics";
+// import * as moment from "moment";
+import moment from "moment";
+// import { median as ssMedian, min as ssMin, max as ssMax, mean as ssMean, sum as ssSum } from "simple-statistics";
+import { median as ssMedian, min as ssMin, max as ssMax, mean as ssMean, sum as ssSum  } from "mathjs";
 
 export default async function parse(json: string, json2: string, json3: string): Promise<string> {
     const data: Activity[] = JSON.parse(json);
@@ -151,15 +153,15 @@ function handleWeek(runs: Activity[], weights: Weight[], lifting: Activity[]): S
         days: s,
         liftingCount: lifting.length,
         liftingDays: ls,
-        totalDist: ss.sum(aDist),
-        minDist: ss.min(aDist),
-        maxDist: ss.max(aDist),
-        meanDist: ss.mean(aDist),
-        totalElevGain: ss.sum(aElevGain),
-        totalCalories: ss.sum(aCals),
-        totalMinutes: ss.sum(aDur),
-        minAvgPace: ss.min(aAvgPace),
-        maxAvgPace: ss.max(aAvgPace),
+        totalDist: ssSum(aDist),
+        minDist: ssMin(aDist),
+        maxDist: ssMax(aDist),
+        meanDist: ssMean(aDist),
+        totalElevGain: ssSum(aElevGain),
+        totalCalories: ssSum(aCals),
+        totalMinutes: ssSum(aDur),
+        minAvgPace: ssMin(aAvgPace),
+        maxAvgPace: ssMax(aAvgPace),
         meanAvgPace: mean(aAvgPace),
         minStrideLength: min(aAvgStrideLength),
         maxStrideLength: max(aAvgStrideLength),
@@ -201,7 +203,7 @@ function min(list: number[]): number {
     if (list.length === 0) {
         return 0;
     }
-    return ss.min(list);
+    return ssMin(list);
 }
 
 
@@ -209,21 +211,21 @@ function max(list: number[]): number {
     if (list.length === 0) {
         return 0;
     }
-    return ss.max(list);
+    return ssMax(list);
 }
 
 function mean(list: number[]): number {
     if (list.length === 0) {
         return 0;
     }
-    return ss.mean(list);
+    return ssMean(list);
 }
 
 function median(list: number[]): number {
     if (list.length === 0) {
         return 0;
     }
-    return ss.median(list);
+    return ssMedian(list);
 }
 
 interface Summary {
@@ -297,7 +299,7 @@ function column(list: any[], field: string, mutator?: ColumnMutator): number[] {
     return returnMe;
 }
 
-type ColumnMutator = (input: number) => number;
+type ColumnMutator = (input: number) => number|undefined;
 
 interface Weight {
     samplePk: number;

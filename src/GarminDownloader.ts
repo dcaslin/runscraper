@@ -1,5 +1,5 @@
-import * as puppeteer from "puppeteer";
 import * as cliProgress from "cli-progress";
+import { launch, Page } from "puppeteer";
 
 const LOGIN = "https://connect.garmin.com/en-US/signin";
 const RUNNING = "https://connect.garmin.com/modern/proxy/activitylist-service/activities/search/activities?activityType=running&limit=1000&start=0";
@@ -7,17 +7,18 @@ const WEIGHT = "https://connect.garmin.com/modern/proxy/userprofile-service/user
     new Date("January 1, 2010 00:00:00").getTime() + "&until=" + new Date().getTime() + "&_=1529325127976";
 const LIFTING = "https://connect.garmin.com/modern/proxy/activitylist-service/activities/search/activities?search=Lifting&limit=2000&start=0";
 
-async function loadJsonData(page: puppeteer.Page, url: string): Promise<string> {
+async function loadJsonData(page: Page, url: string): Promise<string> {
     await page.goto(url);
     // wait on body
     const z = await page.waitForSelector("body");
     return page.evaluate(() => {
-        return document.querySelector("body").innerText;
+
+        return document.querySelector("body")!.innerText;
     });
 }
 
 export default async function downloadData(uid: string, pw: string, debug: boolean, progbar: cliProgress.Bar): Promise<string[]> {
-    const browser = await puppeteer.launch();
+    const browser = await launch();
     try {
 
         // get logon page
